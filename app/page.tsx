@@ -1,69 +1,71 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+function PawIcon() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+      <ellipse cx="12" cy="15" rx="6" ry="5" />
+      <ellipse cx="5" cy="8" rx="2.2" ry="3" />
+      <ellipse cx="10.5" cy="5.5" rx="2.2" ry="3" />
+      <ellipse cx="15.5" cy="5.5" rx="2.2" ry="3" />
+      <ellipse cx="19" cy="8" rx="2.2" ry="3" />
+    </svg>
+  );
+}
+
+function ClipboardIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="w-8 h-8"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    >
+      <rect x="5" y="4" width="14" height="17" rx="1.5" />
+      <path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1" />
+      <path d="M8 10h8M8 13.5h8M8 17h5" />
+    </svg>
+  );
+}
+
+export default function Landing() {
+  return (
+    <main className="min-h-screen flex flex-col items-center justify-center px-6">
+      <div className="flex items-center gap-3 mb-2 text-pine">
+        <PawIcon />
+        <h1 className="font-display text-4xl">Clínica Vetta</h1>
+      </div>
+      <p className="text-ink/60 mb-12 text-center max-w-xs">
+        Agendamento e acompanhamento do atendimento do seu pet
+      </p>
+
+      <div className="grid sm:grid-cols-2 gap-4 w-full max-w-xl">
+        <Link
+          href="/chat"
+          className="group border border-moss/40 rounded-md p-6 hover:border-moss transition-colors bg-paper"
+        >
+          <div className="text-moss mb-4">
+            <PawIcon />
+          </div>
+          <h2 className="font-display text-xl text-ink mb-1">Sou cliente</h2>
+          <p className="text-sm text-ink/60">
+            Fale com a clínica e agende uma consulta pro seu pet
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        </Link>
+
+        <Link
+          href="/painel"
+          className="group border border-pine/30 rounded-md p-6 hover:border-pine transition-colors bg-paper"
+        >
+          <div className="text-pine mb-4">
+            <ClipboardIcon />
+          </div>
+          <h2 className="font-display text-xl text-ink mb-1">Área da equipe</h2>
+          <p className="text-sm text-ink/60">
+            Acompanhe agendamentos pendentes e o histórico completo
+          </p>
+        </Link>
+      </div>
+    </main>
   );
 }

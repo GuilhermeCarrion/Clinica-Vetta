@@ -1,0 +1,1204 @@
+{
+  "name": "Chat-vet",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atendimento-vet",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -208
+      ],
+      "id": "ac2abbfb-23b6-40f2-a569-571727bd1541",
+      "name": "Webhook",
+      "webhookId": "cb9acd1d-f5db-43b0-8ff6-d94b7d887805"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Quando o Sheets retornava nada, esse node não era executado.\n// Correção: Checamos um campo especifico em vez de um objeto vazio.\nconst linhaExistente = (items.length > 0 && items[0].json && items[0].json.telefone)\n  ? items[0].json : null;\n\nconst mensagemAtual = $('Webhook').first().json.body.mensagem;\nconst telefone = $('Webhook').first().json.body.telefone;\nconst idConversa = linhaExistente ? linhaExistente.id : `${telefone} - ${Date.now()}`;\n\n// Se possui contexto retorna os dados passados, se não, só a mensagem e o número do cliente.\nreturn [{\n  json:{\n    contexto_previo: linhaExistente ? JSON.stringify(\n      {\n        nome_tutor: linhaExistente.nome_tutor,\n        nome_pet: linhaExistente.nome_pet,\n        especie: linhaExistente.especie,\n        servico_desejado: linhaExistente.servico_desejado,\n        data_hora_sugerida: linhaExistente.data_hora_sugerida,\n      }) : \"nenhum\",\n    mensagem_atual: mensagemAtual,\n    telefone: telefone,\n    id_conversa: idConversa\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -208
+      ],
+      "id": "770039fb-aeb8-43b9-abb0-e73ce4e5698a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "content": "Rodar no terminal para receber mensagem:\n$body = @{\n  telefone  = \"5518999998888\"\n  mensagem  = \"Quero agendar consulta pro meu gato\"\n} | ConvertTo-Json\n\nInvoke-RestMethod -Uri \"http://localhost:5678/webhook-test/atendimento-vet\" -Method Post -Body $body -ContentType \"application/json\"",
+        "height": 272,
+        "width": 528
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -368,
+        -576
+      ],
+      "typeVersion": 1,
+      "id": "06c16838-620f-42ee-b6a5-7a49051d0016",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Contexto já coletado: {{ $json.contexto_previo }}\nNova mensagem do cliente: \"{{ $json.mensagem_atual }}\"",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Você é a recepcionista virtual da Clínica Vetta. Fale de forma natural e calorosa, como uma pessoa de verdade atendendo — evite repetir a mesma estrutura de frase em toda resposta, e adapte o tom à mensagem do cliente.\n\nHoje é {{ $now.setLocale('pt-BR').toFormat('cccc, dd/MM/yyyy') }}, agora são {{ $now.toFormat('HH:mm') }}.\n\nServiços oferecidos pela clínica:\n- Consulta veterinária geral\n- Vacinação\n- Banho\n- Tosa (higiênica ou completa)\n- Castração\n- Exames laboratoriais\n\nSe o cliente pedir algo fora dessa lista, explique com naturalidade que a clínica não oferece esse serviço e pergunte se ele quer agendar algo da lista acima.\n\nRegras para a data do agendamento:\n- Interprete datas relativas (\"amanhã\", \"sexta-feira\", \"semana que vem\") com base na data de hoje informada acima.\n- Nunca aceite um horário que já passou. Se o cliente pedir uma data/hora no passado, avise gentilmente e peça uma nova data — não marque intencao_concluida como true nesse caso.\n- Quando o agendamento estiver completo, preencha data_hora_sugerida com uma data absoluta e por extenso (ex: \"sexta-feira, 26/09/2026, às 14h\"), nunca só \"sexta-feira\" sozinho — isso evita ambiguidade depois, quando a equipe for olhar a planilha.\n\nExtraia os dados do agendamento a partir da conversa. Se algo estiver faltando, preencha como string vazia, marque intencao_concluida como false, e pergunte pelo que falta de um jeito natural — pode perguntar por mais de uma coisa na mesma frase mas sempre queria as informações como: nome da pessoa, nome do pet e as epecie, depois se a pessoa não mostrar a sua intenção ainda, questione aos poucos 2 a 3 no máximo de perguntas na mesma mensagem, sem soar como um formulário. Se tudo estiver completo e a data for válida, marque intencao_concluida como true e escreva uma resposta amigável confirmando o agendamento em resposta_cliente."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        896,
+        -208
+      ],
+      "id": "e99c053a-3b7a-4c12-940b-e7ea0ebc519b",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        784,
+        0
+      ],
+      "id": "51c52c48-17f3-49d8-b70e-8568b6b11538",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "sm9FY1hsE3znUs4n",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n      \"nome_tutor\": {\"type\":\"string\"},\n      \"nome_pet\": {\"type\":\"string\"},\n      \"especie\": {\"type\":\"string\"},\n      \"servico_desejado\": {\"type\":\"string\"},\n      \"data_hora_sugerida\": {\"type\":\"string\"},\n      \"intencao_concluida\": {\"type\":\"boolean\"},\n      \"pergunta_contrapartida\": {\"type\":\"string\"},\n      \"resposta_cliente\": {\"type\":\"string\"}\n\t},\n  \"required\":[\n      \"nome_tutor\", \"nome_pet\", \"especie\",\n      \"servico_desejado\", \"data_hora_sugerida\",\n      \"intencao_concluida\", \"pergunta_contrapartida\",\n      \"resposta_cliente\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1040,
+        -32
+      ],
+      "id": "a122cee3-fd5b-4cfa-8cd9-69c8181b4e52",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dadosIa = $input.first().json.output;\n\n// Pegando o telefone EXATO novamente e o ID da conversa.\nconst dadosAnteriores = $('Code in JavaScript').first().json;\n\nreturn [{\n  json: {\n    ...dadosIa,\n    telefone: dadosAnteriores.telefone,\n    id_conversa: dadosAnteriores.id_conversa\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        -208
+      ],
+      "id": "2a7b5007-6b94-4178-8649-5ecfd752f41f",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "content": "Não envio o telefone para a IA pois ela pode alterar algo ou formata-lo. Assim garantimos o telefone exato (vem do webhook)."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        688,
+        -416
+      ],
+      "typeVersion": 1,
+      "id": "ce8b5abf-2050-4079-9e50-e73d1040ff63",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "87950176-656c-4802-a637-563a1e9da89b",
+              "leftValue": "={{ $json.intencao_concluida }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1440,
+        -208
+      ],
+      "id": "442ea3fe-5da0-49c0-8e49-d90601c04362",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Agendamentos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "telefone",
+              "lookupValue": "={{ $json.body.telefone }}"
+            },
+            {
+              "lookupColumn": "status",
+              "lookupValue": "Coletando"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        464,
+        -208
+      ],
+      "id": "a344ab80-1491-453e-9522-6ec2ee3a1625",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QANR4LLhcRpu95uI",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Agendamentos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id_conversa }}",
+            "status": "Coletando",
+            "telefone": "={{ $json.telefone }}",
+            "nome_tutor": "={{ $json.nome_tutor }}",
+            "nome_pet": "={{ $json.nome_pet }}",
+            "especie": "={{ $json.especie }}",
+            "servico_desejado": "={{ $json.servico_desejado }}",
+            "data_hora_sugerida": "={{ $json.data_hora_sugerida }}",
+            "criado_em": "={{$now}}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telefone",
+              "displayName": "telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome_tutor",
+              "displayName": "nome_tutor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome_pet",
+              "displayName": "nome_pet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "especie",
+              "displayName": "especie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "servico_desejado",
+              "displayName": "servico_desejado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data_hora_sugerida",
+              "displayName": "data_hora_sugerida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resumo_conversa",
+              "displayName": "resumo_conversa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "criado_em",
+              "displayName": "criado_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1664,
+        -112
+      ],
+      "id": "f50f61ce-b4ac-406a-8ffc-f4622a706ce3",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QANR4LLhcRpu95uI",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"resposta\": \"{{ $('Code in JavaScript1').item.json.pergunta_contrapartida }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1904,
+        -112
+      ],
+      "id": "c99acaa8-7402-41f8-bd3a-c7b531ceb542",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "content": "Passo o \"id_conversa\" para que não seja alterado um agendamento antigo do mesmo cliente (mesmo telefone). Então eu utilizo ele para fazer o \"match\" e não alterar o mesmo agendamento (passado) ao inves de criar um novo.",
+        "width": 464
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1152,
+        -416
+      ],
+      "typeVersion": 1,
+      "id": "b5fa03b9-17d6-4d7a-beda-731b810e1386",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Agendamentos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Code in JavaScript1').item.json.id_conversa }}",
+            "status": "Pendente",
+            "telefone": "={{ $('Code in JavaScript1').item.json.telefone }}",
+            "nome_tutor": "={{ $('Code in JavaScript1').item.json.nome_tutor }}",
+            "nome_pet": "={{ $('Code in JavaScript1').item.json.nome_pet }}",
+            "especie": "={{ $('Code in JavaScript1').item.json.especie }}",
+            "servico_desejado": "={{ $('Code in JavaScript1').item.json.servico_desejado }}",
+            "data_hora_sugerida": "={{ $('Code in JavaScript1').item.json.data_hora_sugerida }}",
+            "criado_em": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telefone",
+              "displayName": "telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome_tutor",
+              "displayName": "nome_tutor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome_pet",
+              "displayName": "nome_pet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "especie",
+              "displayName": "especie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "servico_desejado",
+              "displayName": "servico_desejado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data_hora_sugerida",
+              "displayName": "data_hora_sugerida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resumo_conversa",
+              "displayName": "resumo_conversa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "criado_em",
+              "displayName": "criado_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1664,
+        -304
+      ],
+      "id": "a732941d-9f21-47ff-85e4-711492491215",
+      "name": "Append or update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QANR4LLhcRpu95uI",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"resposta\": \"{{ $('Code in JavaScript1').item.json.resposta_cliente }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1904,
+        -304
+      ],
+      "id": "4b3d2aa5-690c-4a65-874f-40359e6c4b2b",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "path": "pendentes",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "http://localhost:3000"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        224
+      ],
+      "id": "64906d32-573b-4074-87e0-c6673dfdab63",
+      "name": "Webhook1",
+      "webhookId": "0244f685-1f01-4d06-9b48-e6caecffedfb",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "uiphhzEgvabdYOW7",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Agendamentos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "status",
+              "lookupValue": "Pendente"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        224
+      ],
+      "id": "d8c756a0-7f53-4e12-a6a8-991689df6074",
+      "name": "Get row(s) in sheet1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QANR4LLhcRpu95uI",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter remove o item vazio que estava retornando e mostando agendamento vazio no front.\nconst agendamentos = $input.all().map(item => item.json).filter(item=>item.id);\n\nreturn [{ json: {agendamentos}}]; "
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        224
+      ],
+      "id": "e35c22ce-f72d-4605-86ad-61ca38d622aa",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json.agendamentos}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        928,
+        224
+      ],
+      "id": "692f7780-ce70-4b27-b11a-c0df3c046d09",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "content": "Rota GET - /pendentes\nRetorno -> Objeto \"agendamentos\"  com agendamentos 'status = pendente'.",
+        "height": 240,
+        "width": 1056,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        144,
+        144
+      ],
+      "typeVersion": 1,
+      "id": "e5f0ee5a-06fa-4557-8d1a-1d7228a90ae2",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aprovar",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "http://localhost:3000"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        480
+      ],
+      "id": "7f64152a-289b-4c99-b7d1-cfaf1ce40a3a",
+      "name": "Webhook2",
+      "webhookId": "35fc91c5-1375-4213-b61a-60ddc79e3f91",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "uiphhzEgvabdYOW7",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Agendamentos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.body.id }}",
+            "status": "Confirmado"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telefone",
+              "displayName": "telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "nome_tutor",
+              "displayName": "nome_tutor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "nome_pet",
+              "displayName": "nome_pet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "especie",
+              "displayName": "especie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "servico_desejado",
+              "displayName": "servico_desejado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "data_hora_sugerida",
+              "displayName": "data_hora_sugerida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "resumo_conversa",
+              "displayName": "resumo_conversa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "criado_em",
+              "displayName": "criado_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        480
+      ],
+      "id": "935c9a25-3324-4579-b122-8271ef5d71ca",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QANR4LLhcRpu95uI",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"sucesso\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        768,
+        480
+      ],
+      "id": "9ae85e69-d262-4eb5-9e8c-fcc7bb14c23d",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "content": "Rota POST /aprovar\nRetorno -> true ou false (encontrou e confirmou ou não encontrou e NÃO fez NADA).",
+        "height": 272,
+        "width": 832,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        192,
+        400
+      ],
+      "typeVersion": 1,
+      "id": "10f1b556-4404-4196-8531-c8ad73750786",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "path": "historico",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "http://localhost:3000"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1312,
+        208
+      ],
+      "id": "98fd00c0-bd91-49ae-b531-856600299eee",
+      "name": "Webhook3",
+      "webhookId": "c2e4f40f-534b-45ee-9746-c0d14b487bce",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "uiphhzEgvabdYOW7",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Agendamentos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/165av9iXCZ6h4AW82Cal_7AHRwOGdCXaeoDuUHyD27wg/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1536,
+        208
+      ],
+      "id": "fb57700a-acce-4419-815f-4e343a88439e",
+      "name": "Get row(s) in sheet2",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QANR4LLhcRpu95uI",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst agendamentos = $input.all().map(item=>item.json)\n  .sort( (a, b) => new Date(b.criado_em) - new Date(a.criado_em) );\n\nreturn [{json: {agendamentos}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        208
+      ],
+      "id": "0e0af795-b3d7-4cc2-bb30-648ce46b33d2",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json.agendamentos}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1984,
+        208
+      ],
+      "id": "67869e81-8e49-44a5-be44-4fa467594c60",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "content": "Rota GET /historico (ordenado por código pois \"Sheet\" não faz isso)\nRetorno -> Objeto agendamentos já ordenado por mais recente.",
+        "height": 240,
+        "width": 1008,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1216,
+        144
+      ],
+      "typeVersion": 1,
+      "id": "07f78659-bc3f-478f-b308-3f822e138a6d",
+      "name": "Sticky Note5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook3": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "f1f802d4-c99b-45f6-8d60-8a9e3a9556eb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b3fd491b92f22b6439398fe6a204ea400e18587c342f3b730eab7fe417c64c1d"
+  },
+  "nodeGroups": [],
+  "id": "hY8V51iz6oL1VdWf",
+  "tags": []
+}
